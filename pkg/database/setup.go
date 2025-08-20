@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+	"go-chat-app/app/models"
 	"go-chat-app/pkg/env"
 	"log"
 	"os"
@@ -20,6 +21,11 @@ func SetupDatabase() {
 	if err != nil {
 		log.Fatal("Failed to connect to the Database! \n", err.Error())
 		os.Exit(1)
+	}
+
+	err = DB.AutoMigrate(&models.User{}, &models.UserSession{})
+	if err != nil {
+		log.Fatal("Failed to migrate the Database! \n", err.Error())
 	}
 
 	DB.Logger = logger.Default.LogMode(logger.Info)
