@@ -3,6 +3,7 @@ package controllers
 import (
 	"go-chat-app/app/models"
 	"go-chat-app/app/repositories"
+	"go-chat-app/pkg/response"
 	"log"
 
 	"github.com/gofiber/fiber/v2"
@@ -15,20 +16,12 @@ func RegisterUser(ctx *fiber.Ctx) error {
 
 	if err := ctx.BodyParser(&user); err != nil {
 		log.Printf("Failed to parse request body: %v", err)
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": "Invalid request format",
-			"error":   err.Error(),
-		})
+		return response.SendFailureResponse(ctx, fiber.StatusBadRequest, "Invalid request format", err.Error())
 	}
 
 	if err := user.Validate(); err != nil {
 		log.Printf("User validation failed: %v", err)
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": "Validation failed",
-			"error":   err.Error(),
-		})
+		return response.SendFailureResponse(ctx, fiber.StatusBadRequest, "Validation failed", err.Error())
 	}
 
 	hashPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
@@ -40,14 +33,10 @@ func RegisterUser(ctx *fiber.Ctx) error {
 	err = repositories.CreateUser(ctx.Context(), user)
 	if err != nil {
 		log.Printf("Failed to create user: %v", err)
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": "Failed to create user",
-		})
+		return response.SendFailureResponse(ctx, fiber.StatusBadRequest, "Validation failed", err.Error())
 	}
 
-	return ctx.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"success": true,
+	return response.SendSuccessResponse(ctx, fiber.Map{
 		"userId":  user.Id,
 		"message": "User registered successfully",
 	})
