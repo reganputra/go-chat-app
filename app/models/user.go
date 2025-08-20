@@ -24,14 +24,36 @@ type UserSession struct {
 	Id                  uint `gorm:"primaryKey"`
 	CreatedAt           time.Time
 	UpdatedAt           time.Time
-	UserId              int       `json:"user_id" gorm:"type:int" validate:"required"`
-	Token               int       `json:"token" gorm:"type:varchar(255)" validate:"required"`
-	RefreshToken        int       `json:"refresh_token" gorm:"type:varchar(255)" validate:"required"`
+	UserId              uint      `json:"user_id" gorm:"type:int" validate:"required"`
+	Token               string    `json:"token" gorm:"type:varchar(255)" validate:"required"`
+	RefreshToken        string    `json:"refresh_token" gorm:"type:varchar(255)" validate:"required"`
 	TokenExpired        time.Time `json:"-" validate:"required"`
 	RefreshTokenExpired time.Time `json:"-" validate:"required"`
 }
 
 func (i UserSession) Validate() error {
+	v := validator.New()
+	return v.Struct(i)
+}
+
+type LoginRequest struct {
+	Username string `json:"username" validate:"required"`
+	Password string `json:"password" validate:"required"`
+}
+
+func (i LoginRequest) Validate() error {
+	v := validator.New()
+	return v.Struct(i)
+}
+
+type LoginResponse struct {
+	Username     string `json:"username"`
+	FullName     string `json:"full_name"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
+func (i LoginResponse) Validate() error {
 	v := validator.New()
 	return v.Struct(i)
 }
