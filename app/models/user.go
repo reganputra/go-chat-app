@@ -9,7 +9,7 @@ import (
 type User struct {
 	Id        uint   `gorm:"primaryKey"`
 	Username  string `json:"username" gorm:"unique;type:varchar(20)" validate:"required,min=6,max=20"`
-	Password  string `json:"-" gorm:"type:varchar(255);" validate:"required,min=6"`
+	Password  string `json:"password,omitempty" gorm:"type:varchar(255);" validate:"required,min=6"`
 	FullName  string `json:"full_name" gorm:"type:varchar(100);" validate:"required,min=6"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -17,7 +17,7 @@ type User struct {
 
 func (i User) Validate() error {
 	v := validator.New()
-	return v.Struct(1)
+	return v.Struct(i)
 }
 
 type UserSession struct {
@@ -33,5 +33,5 @@ type UserSession struct {
 
 func (i UserSession) Validate() error {
 	v := validator.New()
-	return v.Struct(1)
+	return v.Struct(i)
 }
