@@ -1,6 +1,8 @@
 package router
 
 import (
+	"go-chat-app/app/controllers"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 )
@@ -15,6 +17,9 @@ func (a ApiRouter) InstallRouter(app *fiber.App) {
 			"message": "Hello from api",
 		})
 	})
+	userGroup := api.Group("/user")
+	userV1 := userGroup.Group("/v1")
+	userV1.Post("/register", controllers.RegisterUser)
 }
 func NewApiRouter() *ApiRouter {
 	return &ApiRouter{}

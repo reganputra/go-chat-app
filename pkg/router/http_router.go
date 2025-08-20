@@ -1,6 +1,8 @@
 package router
 
 import (
+	"go-chat-app/app/controllers"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/csrf"

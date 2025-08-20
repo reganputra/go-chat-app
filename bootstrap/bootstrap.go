@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"go-chat-app/pkg/database"
 	"go-chat-app/pkg/env"
+	"go-chat-app/pkg/router"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -23,5 +24,6 @@ func NewApplication() *fiber.App {
 			"message": "Hello from api",
 		})
 	})
+	router.InstallRouter(app)
 	return app
 }
