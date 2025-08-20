@@ -3,8 +3,10 @@ package controllers
 import (
 	"go-chat-app/app/models"
 	"go-chat-app/app/repositories"
+	"go-chat-app/pkg/jwt"
 	"go-chat-app/pkg/response"
 	"log"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/crypto/bcrypt"
@@ -33,11 +35,72 @@ func RegisterUser(ctx *fiber.Ctx) error {
 	err = repositories.CreateUser(ctx.Context(), user)
 	if err != nil {
 		log.Printf("Failed to create user: %v", err)
+		return response.SendFailureResponse(ctx, fiber.StatusInternalServerError, "Failed to create user", nil)
+	}
+
+	bodyResp := user.Username
+
+	return response.SendSuccessResponse(ctx, bodyResp)
+}
+
+func LoginUser(ctx *fiber.Ctx) error {
+
+	loginReq := new(models.LoginRequest)
+	loginResp := new(models.LoginResponse)
+
+	if err := ctx.BodyParser(&loginReq); err != nil {
+		log.Printf("Failed to parse request body: %v", err)
+		return response.SendFailureResponse(ctx, fiber.StatusBadRequest, "Invalid request format", err.Error())
+	}
+
+	if err := loginReq.Validate(); err != nil {
+		log.Printf("User validation failed: %v", err)
 		return response.SendFailureResponse(ctx, fiber.StatusBadRequest, "Validation failed", err.Error())
 	}
 
-	return response.SendSuccessResponse(ctx, fiber.Map{
-		"userId":  user.Id,
-		"message": "User registered successfully",
-	})
+	user, err := repositories.GetUserByUsername(ctx.Context(), loginReq.Username)
+	if err != nil {
+		log.Printf("Failed to get user: %v", err)
+		return response.SendFailureResponse(ctx, fiber.StatusNotFound, "Validation failed", err.Error())
+	}
+
+	// Compare password
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginReq.Password))
+	if err != nil {
+		log.Printf("Failed to compare password: %v", err)
+		return response.SendFailureResponse(ctx, fiber.StatusUnauthorized, "Invalid credentials", err.Error())
+	}
+
+	token, err := jwt.GenerateToken(ctx.Context(), user.Username, user.FullName, `token`)
+	if err != nil {
+		log.Printf("Failed to generate token: %v", err)
+		return response.SendFailureResponse(ctx, fiber.StatusInternalServerError, "Internal server error", err.Error())
+	}
+
+	refreshToken, err := jwt.GenerateToken(ctx.Context(), user.Username, user.FullName, `token`)
+	if err != nil {
+		log.Printf("Failed to refresh token: %v", err)
+		return response.SendFailureResponse(ctx, fiber.StatusInternalServerError, "Internal server error", err.Error())
+	}
+
+	// Create a user session
+	userSession := &models.UserSession{
+		UserId:              user.Id,
+		Token:               token,
+		RefreshToken:        refreshToken,
+		TokenExpired:        time.Now().Add(24 * time.Hour),
+		RefreshTokenExpired: time.Now().Add(7 * 24 * time.Hour),
+	}
+	err = repositories.CreateUserSession(ctx.Context(), userSession)
+	if err != nil {
+		log.Printf("Failed to create user session: %v", err)
+		return response.SendFailureResponse(ctx, fiber.StatusInternalServerError, "Failed to create session", err.Error())
+	}
+
+	loginResp.Username = user.Username
+	loginResp.FullName = user.FullName
+	loginResp.Token = token
+	loginResp.RefreshToken = refreshToken
+
+	return response.SendSuccessResponse(ctx, loginResp)
 }
