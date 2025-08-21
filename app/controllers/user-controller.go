@@ -71,13 +71,13 @@ func LoginUser(ctx *fiber.Ctx) error {
 		return response.SendFailureResponse(ctx, fiber.StatusUnauthorized, "Invalid credentials", err.Error())
 	}
 
-	token, err := jwt.GenerateToken(ctx.Context(), user.Username, user.FullName, `token`)
+	token, err := jwt.GenerateToken(ctx.Context(), user.Username, user.FullName, `access`)
 	if err != nil {
 		log.Printf("Failed to generate token: %v", err)
 		return response.SendFailureResponse(ctx, fiber.StatusInternalServerError, "Internal server error", err.Error())
 	}
 
-	refreshToken, err := jwt.GenerateToken(ctx.Context(), user.Username, user.FullName, `token`)
+	refreshToken, err := jwt.GenerateToken(ctx.Context(), user.Username, user.FullName, `refresh`)
 	if err != nil {
 		log.Printf("Failed to refresh token: %v", err)
 		return response.SendFailureResponse(ctx, fiber.StatusInternalServerError, "Internal server error", err.Error())
@@ -103,4 +103,20 @@ func LoginUser(ctx *fiber.Ctx) error {
 	loginResp.RefreshToken = refreshToken
 
 	return response.SendSuccessResponse(ctx, loginResp)
+}
+
+func LogoutUser(ctx *fiber.Ctx) error {
+	authHeader := ctx.Get("Authorization")
+	var token string
+	if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
+		token = authHeader[7:]
+	} else {
+		token = authHeader
+	}
+	err := repositories.DeleteUserSession(ctx.Context(), token)
+	if err != nil {
+		log.Printf("Failed to delete user session: %v", err)
+		return response.SendFailureResponse(ctx, fiber.StatusInternalServerError, "Failed to delete session", err.Error())
+	}
+	return ctx.SendStatus(fiber.StatusOK)
 }
