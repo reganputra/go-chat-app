@@ -45,3 +45,32 @@ func AuthMiddleware(ctx *fiber.Ctx) error {
 	ctx.Set("full_name", claims.FullName)
 	return ctx.Next()
 }
+
+func MiddlewareRefreshToken(ctx *fiber.Ctx) error {
+	authHeader := ctx.Get("Authorization")
+	if authHeader == "" {
+		log.Println("No auth token")
+		return response.SendFailureResponse(ctx, fiber.StatusUnauthorized, "Unauthorized", nil)
+	}
+
+	// Extract token from "Bearer <token>" format
+	var auth string
+	if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
+		auth = authHeader[7:]
+	} else {
+		auth = authHeader
+	}
+
+	claims, err := jwt.ValidateToken(ctx.Context(), auth)
+	if err != nil {
+		log.Println("Invalid token")
+		return response.SendFailureResponse(ctx, fiber.StatusUnauthorized, "Unauthorized", nil)
+	}
+
+	if time.Now().Unix() > claims.ExpiresAt.Unix() {
+		log.Println("Token expired", claims.ExpiresAt)
+		return response.SendFailureResponse(ctx, fiber.StatusUnauthorized, "Unauthorized", nil)
+	}
+
+	return ctx.Next()
+}

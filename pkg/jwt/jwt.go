@@ -16,12 +16,12 @@ type ClaimToken struct {
 	jwt.RegisteredClaims
 }
 
-var mapTokenTypes = map[string]time.Duration{
+var MapTokenTypes = map[string]time.Duration{
 	"access":  time.Minute * 15,
 	"refresh": time.Hour * 24,
 }
 
-func GenerateToken(ctx context.Context, username, fullName, tokenType string) (string, error) {
+func GenerateToken(ctx context.Context, username, fullName, tokenType string, now time.Time) (string, error) {
 	secret := []byte(env.GetEnv("APP_SECRET", ""))
 
 	claims := ClaimToken{
@@ -30,7 +30,7 @@ func GenerateToken(ctx context.Context, username, fullName, tokenType string) (s
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    env.GetEnv("APP_NAME", ""),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(mapTokenTypes[tokenType])),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(MapTokenTypes[tokenType])),
 		},
 	}
 

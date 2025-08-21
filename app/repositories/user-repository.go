@@ -27,3 +27,7 @@ func GetUserSession(ctx context.Context, token string) (models.UserSession, erro
 	var session models.UserSession
 	return session, database.DB.Where("token = ?", token).Last(&session).Error
 }
+
+func UpdateUserSession(ctx context.Context, token, refreshToken string) error {
+	return database.DB.Exec("UPDATE user_sessions SET token = ? WHERE refresh_token = ?", token, refreshToken).Error
+}

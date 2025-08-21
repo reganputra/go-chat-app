@@ -45,6 +45,7 @@ func RegisterUser(ctx *fiber.Ctx) error {
 
 func LoginUser(ctx *fiber.Ctx) error {
 
+	now := time.Now()
 	loginReq := new(models.LoginRequest)
 	loginResp := new(models.LoginResponse)
 
@@ -71,13 +72,13 @@ func LoginUser(ctx *fiber.Ctx) error {
 		return response.SendFailureResponse(ctx, fiber.StatusUnauthorized, "Invalid credentials", err.Error())
 	}
 
-	token, err := jwt.GenerateToken(ctx.Context(), user.Username, user.FullName, `access`)
+	token, err := jwt.GenerateToken(ctx.Context(), user.Username, user.FullName, `access`, now)
 	if err != nil {
 		log.Printf("Failed to generate token: %v", err)
 		return response.SendFailureResponse(ctx, fiber.StatusInternalServerError, "Internal server error", err.Error())
 	}
 
-	refreshToken, err := jwt.GenerateToken(ctx.Context(), user.Username, user.FullName, `refresh`)
+	refreshToken, err := jwt.GenerateToken(ctx.Context(), user.Username, user.FullName, `refresh`, now)
 	if err != nil {
 		log.Printf("Failed to refresh token: %v", err)
 		return response.SendFailureResponse(ctx, fiber.StatusInternalServerError, "Internal server error", err.Error())
@@ -88,8 +89,8 @@ func LoginUser(ctx *fiber.Ctx) error {
 		UserId:              user.Id,
 		Token:               token,
 		RefreshToken:        refreshToken,
-		TokenExpired:        time.Now().Add(24 * time.Hour),
-		RefreshTokenExpired: time.Now().Add(7 * 24 * time.Hour),
+		TokenExpired:        now.Add(jwt.MapTokenTypes[`access`]),
+		RefreshTokenExpired: now.Add(jwt.MapTokenTypes[`refresh`]),
 	}
 	err = repositories.CreateUserSession(ctx.Context(), userSession)
 	if err != nil {
@@ -119,4 +120,28 @@ func LogoutUser(ctx *fiber.Ctx) error {
 		return response.SendFailureResponse(ctx, fiber.StatusInternalServerError, "Failed to delete session", err.Error())
 	}
 	return ctx.SendStatus(fiber.StatusOK)
+}
+
+func RefreshToken(ctx *fiber.Ctx) error {
+
+	now := time.Now()
+	username := ctx.Get("username")
+	refreshToken := ctx.Get("Authorization")
+	fullName := ctx.Get("full_name")
+
+	token, err := jwt.GenerateToken(ctx.Context(), username, fullName, `access`, now)
+	if err != nil {
+		log.Printf("Failed to generate token: %v", err)
+		return response.SendFailureResponse(ctx, fiber.StatusInternalServerError, "Internal server error", err.Error())
+	}
+
+	err = repositories.UpdateUserSession(ctx.Context(), token, refreshToken)
+	if err != nil {
+		log.Printf("Failed to update user session: %v", err)
+		return response.SendFailureResponse(ctx, fiber.StatusInternalServerError, "Failed to update session", err.Error())
+	}
+
+	return response.SendSuccessResponse(ctx, fiber.Map{
+		"token": token,
+	})
 }
