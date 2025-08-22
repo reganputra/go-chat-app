@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go Chat App - Chat Room</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-left {
+            flex: 1;
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-info {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .logout-btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .logout-btn:hover {
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .section h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        
+        .chat-section {
+            grid-column: 1 / -1;
+        }
+        
+        .chat-messages {
+            background: #ecf0f1;
+            height: 400px;
+            overflow-y: auto;
+            padding: 15px;
+            border: 2px solid #bdc3c7;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        
+        .message {
+            background: #3498db;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 15px;
+            margin-bottom: 10px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+        
+        .message.own {
+            background: #27ae60;
+            margin-left: auto;
+            text-align: right;
+        }
+        
+        .message.history {
+            background: #95a5a6;
+            font-size: 13px;
+        }
+        
+        .message-timestamp {
+            font-size: 10px;
+            opacity: 0.7;
+            margin-top: 3px;
+        }
+        
+        .message-input {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .message-input input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .message-input input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+        
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .connection-status {
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 12px;
+            margin-bottom: 15px;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        .connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .history-info {
+            background: #e8f4fd;
+            color: #0c5460;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 12px;
+            text-align: center;
+            border: 1px solid #bee5eb;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1>Go Chat App - Chat Room</h1>
+                <p>Real-time messaging with history</p>
+            </div>
+            <div class="header-right">
+                <div class="user-info" id="userInfo">Loading...</div>
+                <button class="logout-btn" id="logoutBtn">Logout</button>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <!-- WebSocket Chat Section -->
+            <div class="section chat-section">
+                <h3>Chat Room</h3>
+                <div id="connectionStatus" class="connection-status disconnected">Disconnected</div>
+                <div id="historyInfo" class="history-info" style="display: none;">Message history loaded</div>
+                <div id="chatMessages" class="chat-messages">
+                    <div class="loading">Loading message history...</div>
+                </div>
+                <div class="message-input">
+                    <input type="text" id="messageInput" placeholder="Type your message..." disabled>
+                    <button id="connectBtn">Connect</button>
+                    <button id="sendBtn" disabled>Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let accessToken = null;
+        let refreshToken = null;
+        let currentUser = null;
+        let fullName = null;
+        let websocket = null;
+        let messageHistoryLoaded = false;
+        
+        // API Base URL
+        const API_BASE = window.location.origin;
+        
+        // Authentication state management
+        function loadAuthState() {
+            accessToken = localStorage.getItem('accessToken');
+            refreshToken = localStorage.getItem('refreshToken');
+            currentUser = localStorage.getItem('currentUser');
+            fullName = localStorage.getItem('fullName');
+        }
+        
+        function clearAuthState() {
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('fullName');
+            accessToken = null;
+            refreshToken = null;
+            currentUser = null;
+            fullName = null;
+        }
+        
+        // Auto refresh token if expired
+        async function checkAndRefreshToken() {
+            if (!accessToken || !refreshToken) return false;
+            
+            try {
+                const testResponse = await fetch(`${API_BASE}/api/`, {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+                
+                if (testResponse.ok) return true;
+                
+                const refreshResponse = await fetch(`${API_BASE}/api/user/v1/refresh-token`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${refreshToken}` }
+                });
+                
+                if (refreshResponse.ok) {
+                    const data = await refreshResponse.json();
+                    if (data.data) {
+                        accessToken = data.data.token;
+                        refreshToken = data.data.refresh_token;
+                        localStorage.setItem('accessToken', accessToken);
+                        localStorage.setItem('refreshToken', refreshToken);
+                        return true;
+                    }
+                }
+                
+                clearAuthState();
+                return false;
+            } catch (error) {
+                console.error('Error checking/refreshing token:', error);
+                clearAuthState();
+                return false;
+            }
+        }
+        
+        // Check authentication and redirect if not logged in
+        async function checkAuthentication() {
+            const previousUser = currentUser; // Store previous user to detect account changes
+            loadAuthState();
+            
+            if (!accessToken) {
+                window.location.href = '/';
+                return false;
+            }
+            
+            const tokenValid = await checkAndRefreshToken();
+            if (!tokenValid) {
+                window.location.href = '/';
+                return false;
+            }
+            
+            // Reset message history loaded flag if user changed
+            if (previousUser && previousUser !== currentUser) {
+                messageHistoryLoaded = false;
+            }
+            
+            return true;
+        }
+        
+        // Update user info in header
+        function updateUserInfo() {
+            const userInfoElement = document.getElementById('userInfo');
+            if (currentUser && fullName) {
+                userInfoElement.textContent = `Welcome, ${fullName} (${currentUser})`;
+            }
+        }
+        
+        // Load message history
+        async function loadMessageHistory() {
+            if (!accessToken || messageHistoryLoaded) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/message/v1/history`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.data && data.data.length > 0) {
+                        displayMessageHistory(data.data);
+                        document.getElementById('historyInfo').style.display = 'block';
+                        document.getElementById('historyInfo').textContent = `${data.data.length} previous messages loaded`;
+                    } else {
+                        document.getElementById('chatMessages').innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">No previous messages found</div>';
+                    }
+                    messageHistoryLoaded = true;
+                } else {
+                    document.getElementById('chatMessages').innerHTML = '<div style="text-align: center; color: #e74c3c; padding: 20px;">Failed to load message history</div>';
+                }
+            } catch (error) {
+                console.error('Error loading message history:', error);
+                document.getElementById('chatMessages').innerHTML = '<div style="text-align: center; color: #e74c3c; padding: 20px;">Error loading message history</div>';
+            }
+        }
+        
+        // Display message history
+        function displayMessageHistory(messages) {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML = '';
+            
+            messages.forEach(msg => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message history ${msg.from === currentUser ? 'own' : ''}`;
+                
+                const date = new Date(msg.date);
+                const formattedDate = date.toLocaleString();
+                
+                messageDiv.innerHTML = `
+                    <strong>${msg.from}:</strong> ${msg.message}
+                    <div class="message-timestamp">${formattedDate}</div>
+                `;
+                
+                chatMessages.appendChild(messageDiv);
+            });
+            
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // WebSocket Chat functionality
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const connectBtn = document.getElementById('connectBtn');
+        const sendBtn = document.getElementById('sendBtn');
+        const connectionStatus = document.getElementById('connectionStatus');
+        
+        function updateConnectionStatus(connected) {
+            connectionStatus.textContent = connected ? 'Connected to chat' : 'Disconnected from chat';
+            connectionStatus.className = `connection-status ${connected ? 'connected' : 'disconnected'}`;
+            messageInput.disabled = !connected;
+            sendBtn.disabled = !connected;
+            connectBtn.textContent = connected ? 'Disconnect' : 'Connect';
+        }
+        
+        function addMessage(from, message, isOwn = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isOwn ? 'own' : ''}`;
+            
+            const timestamp = new Date().toLocaleString();
+            messageDiv.innerHTML = `
+                <strong>${from}:</strong> ${message}
+                <div class="message-timestamp">${timestamp}</div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // Auto-refresh message history after sending a message
+        async function refreshMessageHistory() {
+            messageHistoryLoaded = false;
+            await loadMessageHistory();
+        }
+        
+        connectBtn.addEventListener('click', () => {
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.close();
+                return;
+            }
+            
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${window.location.host}/message/v1/send`;
+            
+            websocket = new WebSocket(wsUrl);
+            
+            websocket.onopen = () => {
+                updateConnectionStatus(true);
+                addMessage('System', 'Connected to chat server');
+            };
+            
+            websocket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    const isOwn = data.from === currentUser;
+                    addMessage(data.from, data.message, isOwn);
+                    
+                    // If this is our own message, refresh history to include it
+                    if (isOwn) {
+                        setTimeout(() => {
+                            refreshMessageHistory();
+                        }, 500);
+                    }
+                } catch (error) {
+                    addMessage('System', `Error parsing message: ${error.message}`);
+                }
+            };
+            
+            websocket.onclose = () => {
+                updateConnectionStatus(false);
+                addMessage('System', 'Disconnected from chat server');
+            };
+            
+            websocket.onerror = (error) => {
+                addMessage('System', `WebSocket error: ${error.message || 'Unknown error'}`);
+            };
+        });
+        
+        function sendMessage() {
+            if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+                alert('WebSocket is not connected');
+                return;
+            }
+            
+            const message = messageInput.value.trim();
+            if (!message) return;
+            
+            const messageData = {
+                from: currentUser,
+                message: message
+            };
+            
+            try {
+                websocket.send(JSON.stringify(messageData));
+                messageInput.value = '';
+            } catch (error) {
+                addMessage('System', `Error sending message: ${error.message}`);
+            }
+        }
+        
+        sendBtn.addEventListener('click', sendMessage);
+        
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        // Logout functionality
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            if (!accessToken) {
+                clearAuthState();
+                window.location.href = '/';
+                return;
+            }
+            
+            try {
+                await fetch(`${API_BASE}/api/user/v1/logout`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+            } catch (error) {
+                console.error('Logout error:', error);
+            } finally {
+                clearAuthState();
+                if (websocket) {
+                    websocket.close();
+                }
+                window.location.href = '/';
+            }
+        });
+        
+        // Initialize the chat page
+        async function initializeChatPage() {
+            const isAuthenticated = await checkAuthentication();
+            if (!isAuthenticated) return;
+            
+            updateUserInfo();
+            updateConnectionStatus(false);
+            
+            // Load message history automatically
+            await loadMessageHistory();
+            
+            // Auto-connect to WebSocket
+            connectBtn.click();
+        }
+        
+        // Initialize the app
+        initializeChatPage();
+    </script>
+</body>
+</html>

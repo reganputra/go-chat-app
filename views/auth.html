@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go Chat App - Authentication</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .section h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        input[type="text"]:focus, input[type="password"]:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+        
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .response {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .success {
+            background: #27ae60;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            text-align: center;
+        }
+        
+        .error {
+            background: #e74c3c;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Go Chat App - Authentication</h1>
+            <p>Login or Register to access the chat</p>
+        </div>
+        
+        <div class="main-content">
+            <!-- User Registration Section -->
+            <div class="section">
+                <h3>User Registration</h3>
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label for="regUsername">Username:</label>
+                        <input type="text" id="regUsername" placeholder="Enter username (min 6 chars)" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="regPassword">Password:</label>
+                        <input type="password" id="regPassword" placeholder="Enter password (min 6 chars)" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="regFullName">Full Name:</label>
+                        <input type="text" id="regFullName" placeholder="Enter full name (min 6 chars)" required>
+                    </div>
+                    <button type="submit">Register User</button>
+                </form>
+                <div id="registerResponse" class="response"></div>
+            </div>
+            
+            <!-- User Login Section -->
+            <div class="section">
+                <h3>User Login</h3>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="loginUsername">Username:</label>
+                        <input type="text" id="loginUsername" placeholder="Enter username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password:</label>
+                        <input type="password" id="loginPassword" placeholder="Enter password" required>
+                    </div>
+                    <button type="submit">Login</button>
+                </form>
+                <div id="loginResponse" class="response"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API Base URL
+        const API_BASE = window.location.origin;
+        
+        // Authentication state management with localStorage
+        function saveAuthState(accessToken, refreshToken, currentUser, fullName) {
+            localStorage.setItem('accessToken', accessToken);
+            localStorage.setItem('refreshToken', refreshToken);
+            localStorage.setItem('currentUser', currentUser);
+            localStorage.setItem('fullName', fullName);
+        }
+        
+        function checkExistingAuth() {
+            const accessToken = localStorage.getItem('accessToken');
+            if (accessToken) {
+                // User is already logged in, redirect to chat
+                window.location.href = '/chat';
+            }
+        }
+        
+        // Utility function to display responses
+        function displayResponse(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const responseText = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+            element.textContent = `[${timestamp}] ${isError ? 'ERROR: ' : ''}${responseText}`;
+        }
+        
+        // User Registration
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                username: document.getElementById('regUsername').value,
+                password: document.getElementById('regPassword').value,
+                full_name: document.getElementById('regFullName').value
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/user/v1/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const message = response.ok ? 'Registration successful!' : 'Registration failed!';
+                displayResponse('registerResponse', message, !response.ok);
+                
+                if (response.ok) {
+                    document.getElementById('registerForm').reset();
+                }
+            } catch (error) {
+                displayResponse('registerResponse', `Network error: ${error.message}`, true);
+            }
+        });
+        
+        // User Login
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                username: document.getElementById('loginUsername').value,
+                password: document.getElementById('loginPassword').value
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/user/v1/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                const message = response.ok ? 'Login successful!' : 'Login failed!';
+                displayResponse('loginResponse', message, !response.ok);
+                
+                if (response.ok && data.data) {
+                    // Save authentication state
+                    saveAuthState(
+                        data.data.token,
+                        data.data.refresh_token,
+                        data.data.username,
+                        data.data.full_name
+                    );
+                    
+                    // Redirect to chat page
+                    setTimeout(() => {
+                        window.location.href = '/chat';
+                    }, 1000);
+                }
+            } catch (error) {
+                displayResponse('loginResponse', `Network error: ${error.message}`, true);
+            }
+        });
+        
+        // Check if user is already authenticated on page load
+        checkExistingAuth();
+    </script>
+</body>
+</html>
