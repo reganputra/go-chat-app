@@ -49,11 +49,9 @@ func AuthMiddleware(ctx *fiber.Ctx) error {
 func MiddlewareRefreshToken(ctx *fiber.Ctx) error {
 	authHeader := ctx.Get("Authorization")
 	if authHeader == "" {
-		log.Println("No auth token")
 		return response.SendFailureResponse(ctx, fiber.StatusUnauthorized, "Unauthorized", nil)
 	}
 
-	// Extract token from "Bearer <token>" format
 	var auth string
 	if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
 		auth = authHeader[7:]
@@ -61,16 +59,25 @@ func MiddlewareRefreshToken(ctx *fiber.Ctx) error {
 		auth = authHeader
 	}
 
+	// Validate refresh token exists in a database
+	session, err := repositories.GetUserSessionByRefreshToken(ctx.Context(), auth)
+	if err != nil {
+		return response.SendFailureResponse(ctx, fiber.StatusUnauthorized, "Invalid refresh token", nil)
+	}
+
+	// Check if the refresh token is expired in a database
+	if time.Now().After(session.RefreshTokenExpired) {
+		return response.SendFailureResponse(ctx, fiber.StatusUnauthorized, "Refresh token expired", nil)
+	}
+
+	// Validate JWT structure (but allow expired tokens)
 	claims, err := jwt.ValidateToken(ctx.Context(), auth)
 	if err != nil {
-		log.Println("Invalid token")
-		return response.SendFailureResponse(ctx, fiber.StatusUnauthorized, "Unauthorized", nil)
+		return response.SendFailureResponse(ctx, fiber.StatusUnauthorized, "Invalid token format", nil)
 	}
 
-	if time.Now().Unix() > claims.ExpiresAt.Unix() {
-		log.Println("Token expired", claims.ExpiresAt)
-		return response.SendFailureResponse(ctx, fiber.StatusUnauthorized, "Unauthorized", nil)
-	}
-
+	ctx.Set("username", claims.Username)
+	ctx.Set("full_name", claims.FullName)
+	ctx.Set("refresh_token", auth)
 	return ctx.Next()
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"go-chat-app/app/models"
 	"go-chat-app/pkg/database"
+	"time"
 )
 
 func CreateUser(ctx context.Context, user *models.User) error {
@@ -28,6 +29,15 @@ func GetUserSession(ctx context.Context, token string) (models.UserSession, erro
 	return session, database.DB.Where("token = ?", token).Last(&session).Error
 }
 
-func UpdateUserSession(ctx context.Context, token, refreshToken string) error {
-	return database.DB.Exec("UPDATE user_sessions SET token = ? WHERE refresh_token = ?", token, refreshToken).Error
+func UpdateUserSessionTokens(ctx context.Context, accessToken, refreshToken string,
+	tokenExpired, refreshTokenExpired time.Time, oldRefreshToken string) error {
+	return database.DB.Exec(`UPDATE user_sessions 
+        SET token = ?, refresh_token = ?, token_expired = ?, refresh_token_expired = ?, updated_at = ? 
+        WHERE refresh_token = ?`,
+		accessToken, refreshToken, tokenExpired, refreshTokenExpired, time.Now(), oldRefreshToken).Error
+}
+
+func GetUserSessionByRefreshToken(ctx context.Context, refreshToken string) (models.UserSession, error) {
+	var session models.UserSession
+	return session, database.DB.Where("refresh_token = ?", refreshToken).Last(&session).Error
 }

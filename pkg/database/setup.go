@@ -7,6 +7,8 @@ import (
 	"log"
 	"os"
 
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -29,4 +31,17 @@ func SetupDatabase() {
 	}
 
 	DB.Logger = logger.Default.LogMode(logger.Info)
+}
+
+func SetupMongoDb() {
+	uri := env.GetEnv("MONGODB_URI", "")
+	client, err := mongo.Connect(options.Client().ApplyURI(uri))
+	if err != nil {
+		panic(err)
+	}
+
+	coll := client.Database("messaging_db").Collection("message_history")
+	MongoDB = coll
+
+	log.Println("successfully connected to mongoDB")
 }

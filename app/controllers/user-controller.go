@@ -123,25 +123,31 @@ func LogoutUser(ctx *fiber.Ctx) error {
 }
 
 func RefreshToken(ctx *fiber.Ctx) error {
-
 	now := time.Now()
 	username := ctx.Get("username")
-	refreshToken := ctx.Get("Authorization")
+	refreshToken := ctx.Get("refresh_token")
 	fullName := ctx.Get("full_name")
 
-	token, err := jwt.GenerateToken(ctx.Context(), username, fullName, `access`, now)
+	// Generate new tokens
+	newAccessToken, err := jwt.GenerateToken(ctx.Context(), username, fullName, "access", now)
 	if err != nil {
-		log.Printf("Failed to generate token: %v", err)
-		return response.SendFailureResponse(ctx, fiber.StatusInternalServerError, "Internal server error", err.Error())
+		return response.SendFailureResponse(ctx, fiber.StatusInternalServerError, "Failed to generate access token", err.Error())
 	}
 
-	err = repositories.UpdateUserSession(ctx.Context(), token, refreshToken)
+	newRefreshToken, err := jwt.GenerateToken(ctx.Context(), username, fullName, "refresh", now)
 	if err != nil {
-		log.Printf("Failed to update user session: %v", err)
+		return response.SendFailureResponse(ctx, fiber.StatusInternalServerError, "Failed to generate refresh token", err.Error())
+	}
+
+	// Update the session with new tokens and expiration times
+	err = repositories.UpdateUserSessionTokens(ctx.Context(), newAccessToken, newRefreshToken,
+		now.Add(jwt.MapTokenTypes["access"]), now.Add(jwt.MapTokenTypes["refresh"]), refreshToken)
+	if err != nil {
 		return response.SendFailureResponse(ctx, fiber.StatusInternalServerError, "Failed to update session", err.Error())
 	}
 
 	return response.SendSuccessResponse(ctx, fiber.Map{
-		"token": token,
+		"token":         newAccessToken,
+		"refresh_token": newRefreshToken,
 	})
 }
