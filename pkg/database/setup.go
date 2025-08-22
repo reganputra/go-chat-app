@@ -35,12 +35,13 @@ func SetupDatabase() {
 
 func SetupMongoDb() {
 	uri := env.GetEnv("MONGODB_URI", "")
-	client, err := mongo.Connect(options.Client().ApplyURI(uri))
+	client, err := mongo.Connect(options.Client().
+		ApplyURI(uri))
 	if err != nil {
 		panic(err)
 	}
 
-	coll := client.Database("messaging_db").Collection("message_history")
+	coll := client.Database("go-chat-app").Collection("chat_history")
 	MongoDB = coll
 
 	log.Println("successfully connected to mongoDB")

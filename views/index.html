@@ -2,9 +2,727 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Go Chat App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go Chat App - API Test Frontend</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .section h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        input[type="text"], input[type="password"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        input[type="text"]:focus, input[type="password"]:focus, textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+        
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .logout-btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+        
+        .logout-btn:hover {
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
+        
+        .response {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .auth-info {
+            background: #27ae60;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 12px;
+            word-break: break-all;
+        }
+        
+        .chat-section {
+            grid-column: 1 / -1;
+        }
+        
+        .chat-messages {
+            background: #ecf0f1;
+            height: 300px;
+            overflow-y: auto;
+            padding: 15px;
+            border: 2px solid #bdc3c7;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        
+        .message {
+            background: #3498db;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 15px;
+            margin-bottom: 10px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+        
+        .message.own {
+            background: #27ae60;
+            margin-left: auto;
+            text-align: right;
+        }
+        
+        .message-input {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .message-input input {
+            flex: 1;
+        }
+        
+        .connection-status {
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
+    <div class="container">
+        <div class="header">
+            <h1>Go Chat App - API Test Frontend</h1>
+            <p>Test all API endpoints and WebSocket functionality</p>
+        </div>
+        
+        <div class="main-content">
+            <!-- User Registration Section -->
+            <div class="section">
+                <h3>User Registration</h3>
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label for="regUsername">Username:</label>
+                        <input type="text" id="regUsername" placeholder="Enter username (min 6 chars)" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="regPassword">Password:</label>
+                        <input type="password" id="regPassword" placeholder="Enter password (min 6 chars)" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="regFullName">Full Name:</label>
+                        <input type="text" id="regFullName" placeholder="Enter full name (min 6 chars)" required>
+                    </div>
+                    <button type="submit">Register User</button>
+                </form>
+                <div id="registerResponse" class="response"></div>
+            </div>
+            
+            <!-- User Login Section -->
+            <div class="section">
+                <h3>User Login</h3>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="loginUsername">Username:</label>
+                        <input type="text" id="loginUsername" placeholder="Enter username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password:</label>
+                        <input type="password" id="loginPassword" placeholder="Enter password" required>
+                    </div>
+                    <button type="submit">Login</button>
+                </form>
+                <div id="loginResponse" class="response"></div>
+            </div>
+            
+            <!-- Authentication Status -->
+            <div class="section">
+                <h3>Authentication Status</h3>
+                <div id="authInfo" style="display: none;" class="auth-info">
+                    <strong>Logged in as:</strong> <span id="currentUser"></span><br>
+                    <strong>Access Token:</strong> <span id="accessToken"></span><br>
+                    <strong>Refresh Token:</strong> <span id="refreshToken"></span>
+                </div>
+                <button id="logoutBtn" class="logout-btn" style="display: none;">Logout</button>
+                <button id="refreshBtn" style="display: none;">Refresh Token</button>
+                <div id="authResponse" class="response"></div>
+            </div>
+            
+            <!-- API Test Section -->
+            <div class="section">
+                <h3>API Test</h3>
+                <button id="testApiBtn">Test API Endpoint</button>
+                <p><small>Test the basic API endpoint: GET /api/</small></p>
+                <div id="apiTestResponse" class="response"></div>
+            </div>
+            
+            <!-- Message History Section -->
+            <div class="section">
+                <h3>Message History</h3>
+                <button id="loadHistoryBtn" disabled>Load Message History</button>
+                <p><small>Load all previous messages from the database (requires login)</small></p>
+                <div id="messageHistory" class="chat-messages" style="height: 250px; margin-top: 10px;"></div>
+                <div id="historyResponse" class="response"></div>
+            </div>
+            
+            <!-- WebSocket Chat Section -->
+            <div class="section chat-section">
+                <h3>WebSocket Chat</h3>
+                <div id="connectionStatus" class="connection-status disconnected">Disconnected</div>
+                <div id="chatMessages" class="chat-messages"></div>
+                <div class="message-input">
+                    <input type="text" id="messageInput" placeholder="Type your message..." disabled>
+                    <button id="connectBtn">Connect</button>
+                    <button id="sendBtn" disabled>Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <script>
+        // Global variables
+        let accessToken = null;
+        let refreshToken = null;
+        let currentUser = null;
+        let fullName = null;
+        let websocket = null;
+        
+        // API Base URL
+        const API_BASE = window.location.origin;
+        
+        // Authentication state management with localStorage
+        function saveAuthState() {
+            if (accessToken) {
+                localStorage.setItem('accessToken', accessToken);
+                localStorage.setItem('refreshToken', refreshToken);
+                localStorage.setItem('currentUser', currentUser);
+                localStorage.setItem('fullName', fullName);
+            }
+        }
+        
+        function loadAuthState() {
+            accessToken = localStorage.getItem('accessToken');
+            refreshToken = localStorage.getItem('refreshToken');
+            currentUser = localStorage.getItem('currentUser');
+            fullName = localStorage.getItem('fullName');
+        }
+        
+        function clearAuthState() {
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('fullName');
+            accessToken = null;
+            refreshToken = null;
+            currentUser = null;
+            fullName = null;
+        }
+        
+        // Auto refresh token if expired
+        async function checkAndRefreshToken() {
+            if (!accessToken || !refreshToken) return false;
+            
+            try {
+                // Try to use access token first
+                const testResponse = await fetch(`${API_BASE}/api/`, {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+                
+                // If access token works, we're good
+                if (testResponse.ok) return true;
+                
+                // If access token failed, try refresh token
+                const refreshResponse = await fetch(`${API_BASE}/api/user/v1/refresh-token`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${refreshToken}` }
+                });
+                
+                if (refreshResponse.ok) {
+                    const data = await refreshResponse.json();
+                    if (data.data) {
+                        accessToken = data.data.token;
+                        refreshToken = data.data.refresh_token;
+                        saveAuthState();
+                        updateAuthUI();
+                        return true;
+                    }
+                }
+                
+                // Both tokens failed, clear state
+                clearAuthState();
+                updateAuthUI();
+                return false;
+            } catch (error) {
+                console.error('Error checking/refreshing token:', error);
+                clearAuthState();
+                updateAuthUI();
+                return false;
+            }
+        }
+        
+        // DOM Elements
+        const authInfo = document.getElementById('authInfo');
+        const currentUserSpan = document.getElementById('currentUser');
+        const accessTokenSpan = document.getElementById('accessToken');
+        const refreshTokenSpan = document.getElementById('refreshToken');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+        
+        // Utility function to display responses
+        function displayResponse(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const responseText = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+            element.textContent = `[${timestamp}] ${isError ? 'ERROR: ' : ''}${responseText}`;
+        }
+        
+        // Update authentication UI
+        function updateAuthUI() {
+            const loadHistoryBtn = document.getElementById('loadHistoryBtn');
+            
+            if (accessToken) {
+                authInfo.style.display = 'block';
+                logoutBtn.style.display = 'inline-block';
+                refreshBtn.style.display = 'inline-block';
+                loadHistoryBtn.disabled = false;
+                currentUserSpan.textContent = `${fullName} (${currentUser})`;
+                accessTokenSpan.textContent = accessToken.substring(0, 50) + '...';
+                refreshTokenSpan.textContent = refreshToken.substring(0, 50) + '...';
+            } else {
+                authInfo.style.display = 'none';
+                logoutBtn.style.display = 'none';
+                refreshBtn.style.display = 'none';
+                loadHistoryBtn.disabled = true;
+            }
+        }
+        
+        // User Registration
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                username: document.getElementById('regUsername').value,
+                password: document.getElementById('regPassword').value,
+                full_name: document.getElementById('regFullName').value
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/user/v1/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                const message = response.ok ? 'Registration successful!' : 'Registration failed!';
+                displayResponse('registerResponse', message, !response.ok);
+                
+                if (response.ok) {
+                    document.getElementById('registerForm').reset();
+                }
+            } catch (error) {
+                displayResponse('registerResponse', `Network error: ${error.message}`, true);
+            }
+        });
+        
+        // User Login
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                username: document.getElementById('loginUsername').value,
+                password: document.getElementById('loginPassword').value
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/user/v1/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                const message = response.ok ? 'Login successful!' : 'Login failed!';
+                displayResponse('loginResponse', message, !response.ok);
+                
+                if (response.ok && data.data) {
+                    accessToken = data.data.token;
+                    refreshToken = data.data.refresh_token;
+                    currentUser = data.data.username;
+                    fullName = data.data.full_name;
+                    saveAuthState();
+                    updateAuthUI();
+                    document.getElementById('loginForm').reset();
+                }
+            } catch (error) {
+                displayResponse('loginResponse', `Network error: ${error.message}`, true);
+            }
+        });
+        
+        // User Logout
+        logoutBtn.addEventListener('click', async () => {
+            if (!accessToken) {
+                displayResponse('authResponse', 'No access token available', true);
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/user/v1/logout`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+                
+                const result = response.ok ? 'Logout successful' : await response.text();
+                displayResponse('authResponse', result, !response.ok);
+                
+                if (response.ok) {
+                    clearAuthState();
+                    updateAuthUI();
+                    
+                    // Disconnect WebSocket if connected
+                    if (websocket) {
+                        websocket.close();
+                    }
+                }
+            } catch (error) {
+                displayResponse('authResponse', `Network error: ${error.message}`, true);
+            }
+        });
+        
+        // Refresh Token
+        refreshBtn.addEventListener('click', async () => {
+            if (!refreshToken) {
+                displayResponse('authResponse', 'No refresh token available', true);
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/user/v1/refresh-token`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${refreshToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                displayResponse('authResponse', data, !response.ok);
+                
+                if (response.ok && data.data) {
+                    accessToken = data.data.token;
+                    refreshToken = data.data.refresh_token;
+                    saveAuthState();
+                    updateAuthUI();
+                }
+            } catch (error) {
+                displayResponse('authResponse', `Network error: ${error.message}`, true);
+            }
+        });
+        
+        // Test API Endpoint
+        document.getElementById('testApiBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch(`${API_BASE}/api/`);
+                const data = await response.json();
+                displayResponse('apiTestResponse', data, !response.ok);
+            } catch (error) {
+                displayResponse('apiTestResponse', `Network error: ${error.message}`, true);
+            }
+        });
+        
+        // Load Message History
+        document.getElementById('loadHistoryBtn').addEventListener('click', async () => {
+            if (!accessToken) {
+                displayResponse('historyResponse', 'No access token available', true);
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/message/v1/history`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    displayMessageHistory(data.data);
+                    displayResponse('historyResponse', `Loaded ${data.data.length} messages successfully`);
+                } else {
+                    displayResponse('historyResponse', 'Failed to load message history', true);
+                }
+            } catch (error) {
+                displayResponse('historyResponse', `Network error: ${error.message}`, true);
+            }
+        });
+        
+        // Function to display message history
+        function displayMessageHistory(messages) {
+            const historyContainer = document.getElementById('messageHistory');
+            historyContainer.innerHTML = ''; // Clear previous history
+            
+            if (messages.length === 0) {
+                historyContainer.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No messages found in history</p>';
+                return;
+            }
+            
+            messages.forEach(msg => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message';
+                
+                // Format the date
+                const date = new Date(msg.date);
+                const formattedDate = date.toLocaleString();
+                
+                messageDiv.innerHTML = `
+                    <strong>${msg.from}:</strong> ${msg.message}
+                    <br><small style="opacity: 0.7;">${formattedDate}</small>
+                `;
+                
+                historyContainer.appendChild(messageDiv);
+            });
+            
+            historyContainer.scrollTop = historyContainer.scrollHeight;
+        }
+        
+        // WebSocket Chat functionality
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const connectBtn = document.getElementById('connectBtn');
+        const sendBtn = document.getElementById('sendBtn');
+        const connectionStatus = document.getElementById('connectionStatus');
+        
+        function updateConnectionStatus(connected) {
+            connectionStatus.textContent = connected ? 'Connected' : 'Disconnected';
+            connectionStatus.className = `connection-status ${connected ? 'connected' : 'disconnected'}`;
+            messageInput.disabled = !connected;
+            sendBtn.disabled = !connected;
+            connectBtn.textContent = connected ? 'Disconnect' : 'Connect';
+        }
+        
+        function addMessage(from, message, isOwn = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isOwn ? 'own' : ''}`;
+            messageDiv.innerHTML = `<strong>${from}:</strong> ${message}`;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        connectBtn.addEventListener('click', () => {
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.close();
+                return;
+            }
+            
+            if (!currentUser) {
+                alert('Please login first to use chat functionality');
+                return;
+            }
+            
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${window.location.host}/message/v1/send`;
+            
+            websocket = new WebSocket(wsUrl);
+            
+            websocket.onopen = () => {
+                updateConnectionStatus(true);
+                addMessage('System', 'Connected to chat server');
+            };
+            
+            websocket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    const isOwn = data.from === currentUser;
+                    addMessage(data.from, data.message, isOwn);
+                } catch (error) {
+                    addMessage('System', `Error parsing message: ${error.message}`);
+                }
+            };
+            
+            websocket.onclose = () => {
+                updateConnectionStatus(false);
+                addMessage('System', 'Disconnected from chat server');
+            };
+            
+            websocket.onerror = (error) => {
+                addMessage('System', `WebSocket error: ${error.message || 'Unknown error'}`);
+            };
+        });
+        
+        function sendMessage() {
+            if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+                alert('WebSocket is not connected');
+                return;
+            }
+            
+            const message = messageInput.value.trim();
+            if (!message) return;
+            
+            const messageData = {
+                from: currentUser,
+                message: message
+            };
+            
+            try {
+                websocket.send(JSON.stringify(messageData));
+                messageInput.value = '';
+            } catch (error) {
+                addMessage('System', `Error sending message: ${error.message}`);
+            }
+        }
+        
+        sendBtn.addEventListener('click', sendMessage);
+        
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        // Initialize UI and restore authentication state
+        async function initializeApp() {
+            // Load authentication state from localStorage
+            loadAuthState();
+            
+            // If we have tokens, check if they're valid and refresh if needed
+            if (accessToken && refreshToken) {
+                const tokenValid = await checkAndRefreshToken();
+                if (tokenValid) {
+                    console.log('Authentication restored from localStorage');
+                } else {
+                    console.log('Stored tokens were invalid, cleared authentication state');
+                }
+            }
+            
+            updateAuthUI();
+            updateConnectionStatus(false);
+        }
+        
+        // Initialize the app
+        initializeApp();
+    </script>
 </body>
 </html>

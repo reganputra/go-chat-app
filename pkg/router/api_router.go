@@ -23,6 +23,10 @@ func (a ApiRouter) InstallRouter(app *fiber.App) {
 	userV1.Post("/login", controllers.LoginUser)
 	userV1.Delete("/logout", AuthMiddleware, controllers.LogoutUser)
 	userV1.Put("/refresh-token", MiddlewareRefreshToken, controllers.RefreshToken)
+
+	messageGroup := api.Group("/message")
+	messageV1 := messageGroup.Group("/v1")
+	messageV1.Get("/history", AuthMiddleware, controllers.GetMessagesHistory)
 }
 func NewApiRouter() *ApiRouter {
 	return &ApiRouter{}
