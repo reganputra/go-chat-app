@@ -1,0 +1,6 @@
+2025/08/23 15:45:56 successfully connected to mongoDB
+2025/08/23 15:46:07 User validation failed: Key: 'User.Username' Error:Field validation for 'Username' failed on the 'min' tag
+Key: 'User.Password' Error:Field validation for 'Password' failed on the 'min' tag
+Key: 'User.FullName' Error:Field validation for 'FullName' failed on the 'min' tag
+2025/08/23 15:46:10 Failed to get user: record not found
+2025/08/23 15:46:31 Error reading from client: websocket: close 1005 (no status)
