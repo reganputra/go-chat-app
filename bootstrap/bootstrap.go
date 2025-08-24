@@ -14,6 +14,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/monitor"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/template/html/v2"
+	"go.elastic.co/apm"
 )
 
 func NewApplication() *fiber.App {
@@ -23,6 +24,7 @@ func NewApplication() *fiber.App {
 	database.SetupDatabase()
 	database.SetupMongoDb()
 
+	apm.DefaultTracer.Service.Name = "go-chat-app"
 	engine := html.New("./views", ".html")
 	app := fiber.New(fiber.Config{Views: engine})
 	app.Use(recover.New())

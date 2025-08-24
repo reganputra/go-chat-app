@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"go.elastic.co/apm"
 )
 
 type ClaimToken struct {
@@ -22,6 +23,10 @@ var MapTokenTypes = map[string]time.Duration{
 }
 
 func GenerateToken(ctx context.Context, username, fullName, tokenType string, now time.Time) (string, error) {
+
+	span, _ := apm.StartSpan(ctx, "GenerateToken", "jwt")
+	defer span.End()
+
 	secret := []byte(env.GetEnv("APP_SECRET", ""))
 
 	claims := ClaimToken{
@@ -44,6 +49,10 @@ func GenerateToken(ctx context.Context, username, fullName, tokenType string, no
 }
 
 func ValidateToken(ctx context.Context, token string) (*ClaimToken, error) {
+
+	span, _ := apm.StartSpan(ctx, "ValidateToken", "jwt")
+	defer span.End()
+
 	secret := []byte(env.GetEnv("APP_SECRET", ""))
 
 	parsedToken, err := jwt.ParseWithClaims(token, &ClaimToken{}, func(token *jwt.Token) (interface{}, error) {

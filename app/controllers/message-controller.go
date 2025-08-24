@@ -5,10 +5,15 @@ import (
 	"go-chat-app/pkg/response"
 
 	"github.com/gofiber/fiber/v2"
+	"go.elastic.co/apm"
 )
 
 func GetMessagesHistory(ctx *fiber.Ctx) error {
-	resp, err := repositories.GetAllMessage(ctx.Context())
+
+	span, spanCtx := apm.StartSpan(ctx.Context(), "GetMessagesHistory", "controller")
+	defer span.End()
+
+	resp, err := repositories.GetAllMessage(spanCtx)
 	if err != nil {
 		return response.SendFailureResponse(ctx, fiber.StatusInternalServerError, "Internal Server Error", nil)
 	}

@@ -11,6 +11,7 @@ import (
 
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
+	"go.elastic.co/apm"
 )
 
 func ServeWsMessage(app *fiber.App) {
@@ -31,12 +32,17 @@ func ServeWsMessage(app *fiber.App) {
 				log.Printf("Error reading from client: %v", err)
 				break
 			}
+
+			tx := apm.DefaultTracer.StartTransaction("Send Message", "websocket")
+			ctx := apm.ContextWithTransaction(context.Background(), tx)
+
 			msg.Date = time.Now()
-			err = repositories.InsertNewMessage(context.Background(), msg)
+			err = repositories.InsertNewMessage(ctx, msg)
 			if err != nil {
 				log.Printf("Error inserting message: %v", err)
 				break
 			}
+			tx.End()
 			broadcast <- msg
 		}
 	}))

@@ -9,10 +9,14 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"go.elastic.co/apm"
 	"golang.org/x/crypto/bcrypt"
 )
 
 func RegisterUser(ctx *fiber.Ctx) error {
+
+	span, spanCtx := apm.StartSpan(ctx.Context(), "Register", "controller")
+	defer span.End()
 
 	user := new(models.User)
 
@@ -32,7 +36,7 @@ func RegisterUser(ctx *fiber.Ctx) error {
 	}
 	user.Password = string(hashPassword)
 
-	err = repositories.CreateUser(ctx.Context(), user)
+	err = repositories.CreateUser(spanCtx, user)
 	if err != nil {
 		log.Printf("Failed to create user: %v", err)
 		return response.SendFailureResponse(ctx, fiber.StatusInternalServerError, "Failed to create user", nil)
@@ -44,6 +48,9 @@ func RegisterUser(ctx *fiber.Ctx) error {
 }
 
 func LoginUser(ctx *fiber.Ctx) error {
+
+	span, spanCtx := apm.StartSpan(ctx.Context(), "Login", "controller")
+	defer span.End()
 
 	now := time.Now()
 	loginReq := new(models.LoginRequest)
@@ -59,7 +66,7 @@ func LoginUser(ctx *fiber.Ctx) error {
 		return response.SendFailureResponse(ctx, fiber.StatusBadRequest, "Validation failed", err.Error())
 	}
 
-	user, err := repositories.GetUserByUsername(ctx.Context(), loginReq.Username)
+	user, err := repositories.GetUserByUsername(spanCtx, loginReq.Username)
 	if err != nil {
 		log.Printf("Failed to get user: %v", err)
 		return response.SendFailureResponse(ctx, fiber.StatusNotFound, "Validation failed", err.Error())
@@ -72,13 +79,13 @@ func LoginUser(ctx *fiber.Ctx) error {
 		return response.SendFailureResponse(ctx, fiber.StatusUnauthorized, "Invalid credentials", err.Error())
 	}
 
-	token, err := jwt.GenerateToken(ctx.Context(), user.Username, user.FullName, `access`, now)
+	token, err := jwt.GenerateToken(spanCtx, user.Username, user.FullName, `access`, now)
 	if err != nil {
 		log.Printf("Failed to generate token: %v", err)
 		return response.SendFailureResponse(ctx, fiber.StatusInternalServerError, "Internal server error", err.Error())
 	}
 
-	refreshToken, err := jwt.GenerateToken(ctx.Context(), user.Username, user.FullName, `refresh`, now)
+	refreshToken, err := jwt.GenerateToken(spanCtx, user.Username, user.FullName, `refresh`, now)
 	if err != nil {
 		log.Printf("Failed to refresh token: %v", err)
 		return response.SendFailureResponse(ctx, fiber.StatusInternalServerError, "Internal server error", err.Error())
@@ -92,7 +99,7 @@ func LoginUser(ctx *fiber.Ctx) error {
 		TokenExpired:        now.Add(jwt.MapTokenTypes[`access`]),
 		RefreshTokenExpired: now.Add(jwt.MapTokenTypes[`refresh`]),
 	}
-	err = repositories.CreateUserSession(ctx.Context(), userSession)
+	err = repositories.CreateUserSession(spanCtx, userSession)
 	if err != nil {
 		log.Printf("Failed to create user session: %v", err)
 		return response.SendFailureResponse(ctx, fiber.StatusInternalServerError, "Failed to create session", err.Error())
@@ -107,6 +114,10 @@ func LoginUser(ctx *fiber.Ctx) error {
 }
 
 func LogoutUser(ctx *fiber.Ctx) error {
+
+	span, spanCtx := apm.StartSpan(ctx.Context(), "LogoutUser", "controller")
+	defer span.End()
+
 	authHeader := ctx.Get("Authorization")
 	var token string
 	if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
@@ -114,7 +125,7 @@ func LogoutUser(ctx *fiber.Ctx) error {
 	} else {
 		token = authHeader
 	}
-	err := repositories.DeleteUserSession(ctx.Context(), token)
+	err := repositories.DeleteUserSession(spanCtx, token)
 	if err != nil {
 		log.Printf("Failed to delete user session: %v", err)
 		return response.SendFailureResponse(ctx, fiber.StatusInternalServerError, "Failed to delete session", err.Error())
@@ -123,24 +134,28 @@ func LogoutUser(ctx *fiber.Ctx) error {
 }
 
 func RefreshToken(ctx *fiber.Ctx) error {
+
+	span, spanCtx := apm.StartSpan(ctx.Context(), "RefreshToken", "controller")
+	defer span.End()
+
 	now := time.Now()
 	username := ctx.Get("username")
 	refreshToken := ctx.Get("refresh_token")
 	fullName := ctx.Get("full_name")
 
 	// Generate new tokens
-	newAccessToken, err := jwt.GenerateToken(ctx.Context(), username, fullName, "access", now)
+	newAccessToken, err := jwt.GenerateToken(spanCtx, username, fullName, "access", now)
 	if err != nil {
 		return response.SendFailureResponse(ctx, fiber.StatusInternalServerError, "Failed to generate access token", err.Error())
 	}
 
-	newRefreshToken, err := jwt.GenerateToken(ctx.Context(), username, fullName, "refresh", now)
+	newRefreshToken, err := jwt.GenerateToken(spanCtx, username, fullName, "refresh", now)
 	if err != nil {
 		return response.SendFailureResponse(ctx, fiber.StatusInternalServerError, "Failed to generate refresh token", err.Error())
 	}
 
 	// Update the session with new tokens and expiration times
-	err = repositories.UpdateUserSessionTokens(ctx.Context(), newAccessToken, newRefreshToken,
+	err = repositories.UpdateUserSessionTokens(spanCtx, newAccessToken, newRefreshToken,
 		now.Add(jwt.MapTokenTypes["access"]), now.Add(jwt.MapTokenTypes["refresh"]), refreshToken)
 	if err != nil {
 		return response.SendFailureResponse(ctx, fiber.StatusInternalServerError, "Failed to update session", err.Error())

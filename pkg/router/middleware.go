@@ -8,9 +8,14 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"go.elastic.co/apm"
 )
 
 func AuthMiddleware(ctx *fiber.Ctx) error {
+
+	span, spanCtx := apm.StartSpan(ctx.Context(), "AuthMiddleware", "middleware")
+	defer span.End()
+
 	authHeader := ctx.Get("Authorization")
 	if authHeader == "" {
 		log.Println("No auth token")
@@ -25,13 +30,13 @@ func AuthMiddleware(ctx *fiber.Ctx) error {
 		auth = authHeader
 	}
 
-	_, err := repositories.GetUserSession(ctx.Context(), auth)
+	_, err := repositories.GetUserSession(spanCtx, auth)
 	if err != nil {
 		log.Println("failed to get user session", err)
 		return response.SendFailureResponse(ctx, fiber.StatusUnauthorized, "Unauthorized", nil)
 	}
 
-	claims, err := jwt.ValidateToken(ctx.Context(), auth)
+	claims, err := jwt.ValidateToken(spanCtx, auth)
 	if err != nil {
 		log.Println("Invalid token")
 		return response.SendFailureResponse(ctx, fiber.StatusUnauthorized, "Unauthorized", nil)
@@ -47,6 +52,10 @@ func AuthMiddleware(ctx *fiber.Ctx) error {
 }
 
 func MiddlewareRefreshToken(ctx *fiber.Ctx) error {
+
+	span, spanCtx := apm.StartSpan(ctx.Context(), "MiddlewareRefreshToken", "middleware")
+	defer span.End()
+
 	authHeader := ctx.Get("Authorization")
 	if authHeader == "" {
 		return response.SendFailureResponse(ctx, fiber.StatusUnauthorized, "Unauthorized", nil)
@@ -60,7 +69,7 @@ func MiddlewareRefreshToken(ctx *fiber.Ctx) error {
 	}
 
 	// Validate refresh token exists in a database
-	session, err := repositories.GetUserSessionByRefreshToken(ctx.Context(), auth)
+	session, err := repositories.GetUserSessionByRefreshToken(spanCtx, auth)
 	if err != nil {
 		return response.SendFailureResponse(ctx, fiber.StatusUnauthorized, "Invalid refresh token", nil)
 	}
@@ -71,7 +80,7 @@ func MiddlewareRefreshToken(ctx *fiber.Ctx) error {
 	}
 
 	// Validate JWT structure (but allow expired tokens)
-	claims, err := jwt.ValidateToken(ctx.Context(), auth)
+	claims, err := jwt.ValidateToken(spanCtx, auth)
 	if err != nil {
 		return response.SendFailureResponse(ctx, fiber.StatusUnauthorized, "Invalid token format", nil)
 	}
